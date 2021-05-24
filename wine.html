@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+    <meta charset='utf-8'>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Wine Review Visualization</title>
+
+    <script src='https://dc-js.github.io/dc.js/js/d3.js' type='text/javascript'>
+    </script>
+    <script src='https://dc-js.github.io/dc.js/js/crossfilter.js' type='text/javascript'>
+    </script>
+    <script src='https://rawgit.com/crossfilter/reductio/master/reductio.js' type='text/javascript'>
+    </script>
+    <script src='https://dc-js.github.io/dc.js/js/dc.js' type='text/javascript'>
+    </script>
+
+    <link href='https://dc-js.github.io/dc.js/css/dc.css' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <style type="text/css">
+        body {
+            background-color: WhiteSmoke;
+           font-family: Tahoma, sans-serif;
+            color: white;
+            padding-top: 15px;
+            font-weight: 400;
+        }
+        
+        .dc-chart g.row text {
+            fill: white;
+        }
+        
+        .reset {
+            background-color: #B53471;
+            border-radius: 10%;
+            padding: 2px 5px;
+            color: white;
+        }
+    </style>
+</head>
+
+<body style="background: url('./background.png')  no-repeat center center fixed; background-size: cover;">
+    <div class="col-12">
+        <div class="animate__slower animate__animated animate__bounceInDown">
+
+            <h1 class="text-center" style = "font-family: Georgia, serif">Wine Reviews
+            </h1>
+        </div>
+        <div class="row">
+            <div class="col-6 pl-5">
+                <strong>Varieties</strong>  
+                <div id="variety-chart" class="animate__slower animate__animated animate__fadeInLeft">
+                    <span>
+           <a class="reset" 
+              href="javascript:varietyChart.filterAll();dc.redrawAll();" 
+              style="display: none;">
+              Reset
+            </a>
+          </span>
+                </div>
+
+                <div id="country-chart" class="animate__slower animate__animated animate__fadeInDown">
+                    <strong>Countries</strong>
+                    <span>
+    <a class="reset" 
+      href="javascript:countryChart.filterAll();dc.redrawAll();" 
+      style="display: none;">
+      Reset
+    </a>
+  </span>
+                    <div class="clearfix"></div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div id="points-chart" class="animate__slower animate__animated animate__fadeInDown">
+                    <strong>Wines by Point Rating</strong>
+                    <span>
+            <a class="reset" 
+              href="javascript:pointsChart.filterAll();dc.redrawAll();" 
+              style="display: none;">
+              Reset
+            </a>
+          </span>
+                    <div class="clearfix"></div>
+                </div>
+                <div id="price-chart" class="animate__slower animate__animated animate__fadeInRight">
+                    <strong>Wines by Price</strong>
+                    <span>
+            <a class="reset" 
+              href="javascript:priceChart.filterAll();dc.redrawAll();" 
+              style="display: none;">
+              Reset
+            </a>
+          </span>
+                    <div class="clearfix"></div>
+                </div>
+
+                <div id="line-chart" class="animate__slower animate__animated animate__fadeInUp col">
+                    <strong>Points vs Price</strong>
+                    <span>
+      <a class="reset" 
+        href="javascript:lineChart.filterAll();dc.redrawAll();" 
+        style="display: none;">
+        Reset
+      </a>
+    </span>
+                    <div class="clearfix"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="text/javascript">
+        var varietyChart = dc.rowChart('#variety-chart');
+        var countryChart = dc.pieChart('#country-chart');
+        var pointsChart = dc.barChart('#points-chart');
+        var priceChart = dc.barChart('#price-chart');
+        var lineChart = dc.lineChart('#line-chart');
+
+        d3.csv('wine-data-clean.csv').then(function(data) {
+
+            data.forEach(function(d) {
+                d.points = +d.points;
+                d.price = +d.price;
+            });
+
+            var wine = crossfilter(data);
+
+            var variety = wine.dimension(function(d) {
+                return d.variety;
+            });
+            var varietyGroup = variety.group().reduceCount(function(d) {
+                return d.variety;
+            });
+            var country = wine.dimension(function(d) {
+                return d.country;
+            });
+            var countryGroup = country.group().reduceCount(function(d) {
+                return d.country;
+            });
+            var points = wine.dimension(function(d) {
+                return d.points;
+            });
+            var pointsGroup = points.group().reduceCount(function(d) {
+                return d.points;
+            });
+            var price = wine.dimension(function(d) {
+                return d.price;
+            });
+            var priceGroup = price.group();
+
+            var reducer = reductio()
+                .count(true)
+                .avg(function(d) {
+                    return d.points
+                });
+            reducer(priceGroup);
+
+            varietyChart
+                .width(500)
+                .height(600)
+                .margins({
+                    top: 20,
+                    left: 10,
+                    right: 10,
+                    bottom: 20
+                })
+                .dimension(variety)
+                .group(varietyGroup)
+                .gap(1)
+                .elasticX(true)
+                .xAxis().ticks(4);
+
+            countryChart
+                .width(600)
+                .height(250)
+                .radius(135)
+                .innerRadius(40)
+                .dimension(country)
+                .group(countryGroup)
+                .minAngleForLabel(.15)
+                .slicesCap(7);
+
+            pointsChart
+                .width(800)
+                .height(275)
+                .margins({
+                    top: 10,
+                    right: 10,
+                    bottom: 20,
+                    left: 40
+                })
+                .dimension(points)
+                .group(pointsGroup)
+                .transitionDuration(500)
+                .centerBar(true)
+                .gap(1)
+                .x(d3.scaleLinear().domain([80, 100]))
+                .elasticY(true)
+                .renderHorizontalGridLines(true)
+                .xAxis().ticks(20);
+
+            priceChart
+                .width(800)
+                .height(275)
+                .margins({
+                    top: 10,
+                    right: 10,
+                    bottom: 20,
+                    left: 40
+                })
+                .dimension(price)
+                .group(priceGroup)
+                .valueAccessor(function(p) {
+                    return p.value.count;
+                })
+                .transitionDuration(500)
+                .centerBar(true)
+                .gap(0)
+                .x(d3.scaleLinear().domain([0, 150]))
+                .elasticY(true)
+                .renderHorizontalGridLines(true)
+                .xAxis().ticks(20).tickFormat(function(v) {
+                    return '$' + v;
+                });
+
+            lineChart
+                .width(800)
+                .height(275)
+                .renderArea(true)
+                .xyTipsOn(true)
+                .transitionDuration(500)
+                .margins({
+                    top: 10,
+                    right: 10,
+                    bottom: 40,
+                    left: 40
+                })
+                .dimension(price)
+                .group(priceGroup)
+                .valueAccessor(function(p) {
+                    return p.value.avg;
+                })
+                .brushOn(false)
+                .y(d3.scaleLinear().domain([80, 100]))
+                .renderHorizontalGridLines(true)
+                .renderVerticalGridLines(true)
+                .xAxisLabel('Price')
+                .yAxisLabel('Point Rating')
+                .x(d3.scaleLinear().domain([0., 150]))
+                .xAxis().ticks(20).tickFormat(function(v) {
+                    return '$' + v;
+                });
+
+            dc.renderAll();
+        });
+    </script>
+</body>
+
+</html>
